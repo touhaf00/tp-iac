@@ -165,3 +165,137 @@ Les fichiers d'état Terraform doivent être protégés car ils peuvent contenir
 Il faut éviter de les publier dans un dépôt public et les ajouter dans le `.gitignore`. Dans ce TP, les fichiers `*.tfstate` et `*.tfvars` sont ignorés par Git.
 
 Pour les secrets, il ne faut pas les écrire directement dans les fichiers versionnés. Il vaut mieux utiliser des variables, des secrets GitHub ou un autre système prévu pour stocker les informations sensibles de manière sécurisée.
+
+
+## Installation
+
+Pour utiliser ce projet, il faut avoir Terraform, Docker et Git installés sur la machine.
+
+Docker doit être démarré avant d'utiliser Terraform. On peut vérifier qu'il fonctionne avec :
+
+```bash
+docker info
+```
+
+Une fois dans le dossier du projet, il faut initialiser Terraform :
+
+```bash
+terraform init
+```
+
+Cette commande initialise le projet et télécharge le provider Docker nécessaire.
+
+Ensuite, on peut vérifier le format et la validité de la configuration :
+
+```bash
+terraform fmt -recursive
+terraform validate
+```
+
+Si la configuration est correcte, Terraform affiche que la validation a réussi.
+
+## Déploiement
+
+Avant de créer l'infrastructure, je vérifie d'abord les changements prévus avec :
+
+```bash
+terraform plan
+```
+
+Cette commande permet de voir les ressources que Terraform va créer, modifier ou supprimer sans encore appliquer les changements.
+
+Pour déployer réellement l'infrastructure :
+
+```bash
+terraform apply
+```
+
+Terraform affiche de nouveau le plan et demande une confirmation. Il faut saisir :
+
+```text
+yes
+```
+
+Terraform télécharge l'image Nginx si nécessaire, crée le réseau Docker et démarre le conteneur Web.
+
+Les informations principales du déploiement peuvent être affichées avec :
+
+```bash
+terraform output
+```
+
+Dans la configuration finale de mon TP, le serveur Web utilise le port `8083`.
+
+L'URL est donc :
+
+```text
+http://localhost:8083
+```
+
+Le port `8082` avait été utilisé auparavant. Pendant la partie dépannage, je l'ai volontairement occupé pour reproduire un conflit de port. J'ai ensuite changé la configuration pour utiliser le port `8083`.
+
+## Tests
+
+Après le déploiement, je peux vérifier que le serveur Web répond avec :
+
+```bash
+curl http://localhost:8083
+```
+
+La commande doit afficher le contenu de la page `html/index.html`.
+
+Je peux aussi vérifier que le conteneur est bien en cours d'exécution avec :
+
+```bash
+docker ps
+```
+
+Le conteneur `tp-iac-web` doit apparaître avec le port `8083`.
+
+Pour vérifier les réseaux Docker :
+
+```bash
+docker network ls
+```
+
+Le réseau `tp-iac-network` doit apparaître dans la liste.
+
+J'ai également vérifié les logs du conteneur avec :
+
+```bash
+docker logs tp-iac-web
+```
+
+Les logs permettent de vérifier que Nginx a correctement démarré et de rechercher une erreur si le conteneur ne fonctionne pas.
+
+## Destruction de l'infrastructure
+
+Avant de supprimer les ressources, je peux voir ce que Terraform prévoit de détruire avec :
+
+```bash
+terraform plan -destroy
+```
+
+Ensuite, je détruis les ressources gérées par Terraform avec :
+
+```bash
+terraform destroy
+```
+
+Terraform demande une confirmation. Il faut saisir :
+
+```text
+yes
+```
+
+Après la destruction, je peux vérifier que le conteneur et le réseau ont bien été supprimés avec :
+
+```bash
+docker ps -a
+docker network ls
+terraform state list
+```
+
+Le conteneur `tp-iac-web` et le réseau `tp-iac-network` ne doivent plus être présents parmi les ressources du projet.
+
+L'image Nginx peut rester présente localement car la configuration utilise `keep_locally = true`.
