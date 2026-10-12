@@ -1,6 +1,6 @@
 variable "container_name" {
   description = "Nom du conteneur Web"
-  type=string
+  type        = string
   default     = "tp-iac-web"
 
   validation {
